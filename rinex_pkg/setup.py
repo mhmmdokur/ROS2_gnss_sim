@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "rinex_node = rinex_pkg.rinex_sat_position:main"
         ],
     },
 )
