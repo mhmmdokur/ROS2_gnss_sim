@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/muhammed/mapviz_ws/install/tile_map/include/**",
+        "/home/muhammed/mapviz_ws/install/multires_image/include/**",
+        "/home/muhammed/mapviz_ws/install/mapviz_plugins/include/**",
+        "/home/muhammed/mapviz_ws/install/mapviz/include/**",
+        "/home/muhammed/mapviz_ws/install/mapviz_interfaces/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/muhammed/ros2_ws/src/gnss_nav_pkg/include/**",
+        "include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
