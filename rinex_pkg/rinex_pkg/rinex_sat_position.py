@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import rclpy
+import calendar
+import datetime
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix
 from RSP.parse_rinex import read_rinex
-from RSP.satpos import calculate_satpos, calculate_positions, calculate_single_positions
+from RSP.satpos import calculate_satpos, calculate_positions
 from Transform.geo import ecef_to_geodetic, geodetic_to_enu, ecef_to_enu
+
 
 
 class NavSatFixSubscriber(Node):
@@ -24,6 +27,7 @@ class NavSatFixSubscriber(Node):
         self.boylam = msg.longitude
         self.irtifa = msg.altitude
 
+
 class RinexPublisher(Node):
     def __init__(self):
         super().__init__('rinex_publisher')
@@ -36,24 +40,38 @@ class RinexPublisher(Node):
         self.timer = self.create_timer(1, self.publish_rinex_data)
 
     def publish_rinex_data(self):
-        # Veri işleme ve yayın yapma işlemleri
-        #sat_pos = calculate_positions(self.sat_data)
+
+        self.date = datetime.datetime.now();
+        self.unix_time = calendar.timegm(self.date.utctimetuple())
         
-        #first_key = next(iter(sat_pos))
-        #llh = ecef_to_geodetic(sat_pos[first_key]['x'], sat_pos[first_key]['y'], sat_pos[first_key]['z'])
-        # İlk rinex verisini almak için
-        sat_pos = calculate_single_positions(self.sat_data)
-        single_rinex_data = next(sat_pos)
-        llh = ecef_to_geodetic(single_rinex_data['x'], single_rinex_data['y'], single_rinex_data['z'])
+        for key, satellite_data in self.sat_data.items():
+            self.epoch_data = satellite_data['EPOCH']
+            self.year = int(self.epoch_data['YEAR'])
+            self.month = int(self.epoch_data['MONTH'])
+            self.day = int(self.epoch_data['DAY'])
+            self.hour = int(self.epoch_data['HOUR'])
+            self.minute = int(self.epoch_data['MINUTE'])
+            self.second = int(float(self.epoch_data['SECOND']))  # Convert string to float, then to int
 
-        # NavSatFix mesajını oluştur
-        msg = NavSatFix()
-        msg.latitude = llh[0]
-        msg.longitude = llh[1]
-        msg.altitude = llh[2]
+            
+            self.rnx_dateTime = datetime.datetime(self.year, self.month, self.day, self.hour, self.minute, self.second)
+            self.rnx_unixTime = calendar.timegm(self.rnx_dateTime.timetuple())
 
-        # Yayın yapma
-        self.publisher.publish(msg)
+
+            if((self.unix_time <= self.rnx_unixTime+3600) or (self.unix_time >= self.rnx_unixTime-3600)):
+                xk, yk, zk = calculate_satpos(self.sat_data)
+                self.llh = ecef_to_geodetic(xk, yk, zk)
+                
+                # NavSatFix mesajını oluştur
+                msg = NavSatFix()
+                msg.latitude = self.llh[0]
+                msg.longitude = self.llh[1]
+                msg.altitude = self.llh[2]
+
+                # Yayın yapma
+                self.publisher.publish(msg)
+                self.get_logger().info(self.llh)
+
 
 
 def main(args=None):
