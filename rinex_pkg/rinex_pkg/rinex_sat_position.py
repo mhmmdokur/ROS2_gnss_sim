@@ -12,7 +12,7 @@ def main(args=None):
     rclpy.init(args=args)
     node = Node("rinex_test")
 
-    sat_data = read_rinex('./gmez0380.21n')
+    sat_data = read_rinex('./eil41040.24n')
     sat_pos = calculate_positions(sat_data)
 
     date = datetime.datetime.now();
@@ -34,10 +34,11 @@ def main(args=None):
         rnx_dateTime = datetime.datetime((year+2000), month, day, hour, minute, second)
         rnx_unixTime = calendar.timegm(rnx_dateTime.timetuple())
 
-        if((unix_time <= rnx_unixTime+3) or (unix_time >= rnx_unixTime-3)):
+        if((rnx_unixTime <= 1713052784+3600) and (rnx_unixTime >= 1713052784-3600)):
             xk, yk, zk = calculate_satpos(satellite_data)
             node.get_logger().info(f"Satellite {key} Position: x={xk}, y={yk}, z={zk}, Date={rnx_dateTime},Time={rnx_unixTime}")
-
+        else:
+            node.get_logger().info("No Satellite")
 
     #print(sat_pos)
 
