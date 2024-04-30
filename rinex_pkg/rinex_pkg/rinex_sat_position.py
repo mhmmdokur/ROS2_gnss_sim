@@ -12,17 +12,19 @@ def main(args=None):
     rclpy.init(args=args)
     node = Node("rinex_test")
 
-    sat_data = read_rinex('./eil41040.24n')
+    sat_data = read_rinex('./wdc51200.24n')
     sat_pos = calculate_positions(sat_data)
 
     date = datetime.datetime.now();
     unix_time = calendar.timegm(date.utctimetuple())
+    unix_time_yesterday = unix_time - 86400;
 
     for key, satellite_data in sat_data.items():
         if 'sqrt_A' not in satellite_data:
             node.get_logger().error(f"'sqrt_A' key is missing for satellite {key}. Cannot calculate position.")
             continue
 
+        sat_prn = satellite_data['PRN']
         epoch_data = satellite_data['EPOCH']
         year = int(epoch_data['YEAR'])
         month = int(epoch_data['MONTH'])
@@ -34,9 +36,9 @@ def main(args=None):
         rnx_dateTime = datetime.datetime((year+2000), month, day, hour, minute, second)
         rnx_unixTime = calendar.timegm(rnx_dateTime.timetuple())
 
-        if((rnx_unixTime <= 1713052784+3600) and (rnx_unixTime >= 1713052784-3600)):
+        if((rnx_unixTime <= (unix_time_yesterday+3600)) and (rnx_unixTime >= (unix_time_yesterday-3600))):
             xk, yk, zk = calculate_satpos(satellite_data)
-            node.get_logger().info(f"Satellite {key} Position: x={xk}, y={yk}, z={zk}, Date={rnx_dateTime},Time={rnx_unixTime}")
+            node.get_logger().info(f"Satellite {sat_prn} Position: x={xk}, y={yk}, z={zk}, Date={rnx_dateTime},Time={rnx_unixTime}")
         else:
             node.get_logger().info("No Satellite")
 
