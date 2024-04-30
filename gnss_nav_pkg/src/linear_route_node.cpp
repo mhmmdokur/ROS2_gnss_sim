@@ -193,25 +193,6 @@ private:
     double stddev;
 };
 
-class LooseFix 
-{
-public:
-    LooseFix(double phase, double period) : phase(phase), period(period) {}
-
-    void update(Time t, NavSatFix& fix) {
-        double t_sec = t.nanoseconds() / 1e9;
-        double phase_0_to_1 = fmod(t_sec, period) / period;
-        if (phase_0_to_1 < phase) {
-            fix.status.status = NavSatStatus::STATUS_NO_FIX;
-        } else {
-            fix.status.status = NavSatStatus::STATUS_FIX;
-        }
-    }
-
-private:
-    double phase;
-    double period;
-};
 
 int main(int argc, char* argv[])
 {

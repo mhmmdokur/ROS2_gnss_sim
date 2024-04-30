@@ -17,7 +17,7 @@ class RinexPublisher(Node):
         self.sat_data = read_rinex('./wdc51200.24n')
         self.sat_pos = calculate_positions(self.sat_data)
 
-        self.position_publisher = self.create_publisher(NavSatFix, 'satellite_position', 10)
+        self.position_publisher = self.create_publisher(NavSatFix, 'satellite_position', 30)
 
         self.timer = self.create_timer(10, self.publish_rinex_data)
 
