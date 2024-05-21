@@ -51,14 +51,14 @@ private:
     double alpha;
 };
 
-class MyNode : public rclcpp::Node
+class PositionPublisher : public rclcpp::Node
 {
 public:
-    MyNode() : Node("publish_demo_data")
+    PositionPublisher() : Node("publish_demo_data")
     {
         mPublisher = this->create_publisher<NavSatFix>("fix", 1);
         mTimer     = this->create_wall_timer(std::chrono::milliseconds(100),
-                                             std::bind(&MyNode::timerCallback, this));
+                                             std::bind(&PositionPublisher::timerCallback, this));
 
         mMarkerPublisher = this->create_publisher<visualization_msgs::msg::Marker>("marker_topic", 1);
 
@@ -197,12 +197,12 @@ private:
 int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
-    auto my_node = std::make_shared<MyNode>();
-    auto point_subscriber_node = std::make_shared<PointStampedSubscriber>();
+    auto positionPublisherNode = std::make_shared<PositionPublisher>();
+    auto pointSubscriberNode = std::make_shared<PointStampedSubscriber>();
 
     rclcpp::executors::MultiThreadedExecutor executor;
-    executor.add_node(my_node);
-    executor.add_node(point_subscriber_node);
+    executor.add_node(positionPublisherNode);
+    executor.add_node(pointSubscriberNode);
 
     // Spin the executor to run all nodes
     executor.spin();
