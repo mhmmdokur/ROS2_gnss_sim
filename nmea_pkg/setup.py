@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "nmea_node = nmea_pkg.nmea_decoder:main"
+            "nmea_node = nmea_pkg.nmea_encoder:main"
         ],
     },
 )

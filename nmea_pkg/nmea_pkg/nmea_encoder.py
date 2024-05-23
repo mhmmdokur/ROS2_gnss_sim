@@ -43,7 +43,7 @@ class NavSatFixSubscriber(Node):
         super().__init__('navsatfix_subscriber')
         self.subscription = self.create_subscription(
             NavSatFix,
-            'navsatfix',
+            '/fix',
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
