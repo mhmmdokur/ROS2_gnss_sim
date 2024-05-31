@@ -63,6 +63,7 @@ private:
                             "Ntrip-Version: Ntrip/2.0\r\n"
                             "User-Agent: NTRIP client\r\n"
                             "Authorization: Basic " + encoded_credentials + "\r\n"
+                            "Connection: keep-alive\r\n"
                             "\r\n";
       boost::asio::write(*socket_, boost::asio::buffer(request));
       RCLCPP_INFO(this->get_logger(), "NTRIP sunucusuna bağlantı isteği gönderildi.");
@@ -92,18 +93,24 @@ private:
       // RTCM verilerini oku
       char buf[512];
       size_t len = socket_->read_some(boost::asio::buffer(buf));
-      std_msgs::msg::ByteMultiArray msg;
-      msg.data.insert(msg.data.end(), buf, buf + len);
-      publisher_->publish(msg);
+      if (len > 0) {
+        std_msgs::msg::ByteMultiArray msg;
+        msg.data.insert(msg.data.end(), buf, buf + len);
+        publisher_->publish(msg);
 
-      // RTCM mesajlarını terminale yazdırma
-      RCLCPP_INFO(this->get_logger(), "RTCM yakalandı. Mesaj sayısı: %d", ++rtcm_count_);
+        // RTCM mesajlarını terminale yazdırma
+        RCLCPP_INFO(this->get_logger(), "RTCM yakalandı. Mesaj sayısı: %d", ++rtcm_count_);
+      } else {
+        RCLCPP_WARN(this->get_logger(), "Boş veri alındı, yeniden bağlanılıyor...");
+        socket_->close();
+      }
 
       // Konum bilgilerini periyodik olarak göndermek
       boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
     } catch (std::exception& e) {
       RCLCPP_ERROR(this->get_logger(), "Veri okuma hatası: %s", e.what());
       socket_->close();
+      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(2), std::bind(&NtripClient::connect_to_ntrip, this));
     }
   }
 
