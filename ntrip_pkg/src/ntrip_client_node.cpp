@@ -5,6 +5,10 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <chrono>
+#include <thread>
+#include <termios.h>
+#include <unistd.h>
 
 using boost::asio::ip::tcp;
 
@@ -31,68 +35,92 @@ std::string encode_base64(const std::string &in) {
 
 class NtripClient : public rclcpp::Node {
 public:
-  NtripClient(const std::string& host, const std::string& port, const std::string& username, const std::string& password) 
-  : Node("ntrip_client"), host_(host), port_(port), username_(username), password_(password) {
+  NtripClient(const std::string& username, const std::string& password) 
+  : Node("ntrip_client"), username_(username), password_(password), rtcm_count_(0) {
     publisher_ = this->create_publisher<std_msgs::msg::ByteMultiArray>("rtcm_data", 10);
-    connect_to_ntrip();
+    timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&NtripClient::timer_callback, this));
   }
 
 private:
   void connect_to_ntrip() {
     try {
+      const std::string host = "212.156.70.42"; // IP adresi buraya
+      const std::string port = "2101"; // Port buraya
+      const std::string mountpoint = "VRSRTCM31"; // Mount point buraya
+
       boost::asio::io_context io_context;
       tcp::resolver resolver(io_context);
-      tcp::resolver::results_type endpoints = resolver.resolve(host_, port_);
+      tcp::resolver::results_type endpoints = resolver.resolve(host, port);
 
-      tcp::socket socket(io_context);
-      boost::asio::connect(socket, endpoints);
+      socket_ = std::make_unique<tcp::socket>(io_context);
+      boost::asio::connect(*socket_, endpoints);
 
       std::string credentials = username_ + ":" + password_;
       std::string encoded_credentials = encode_base64(credentials);
 
-      std::string request = "GET /mountpoint HTTP/1.1\r\n"
-                            "Host: " + host_ + "\r\n"
+      std::string request = "GET /" + mountpoint + " HTTP/1.1\r\n"
+                            "Host: " + host + "\r\n"
                             "Ntrip-Version: Ntrip/2.0\r\n"
                             "User-Agent: NTRIP client\r\n"
                             "Authorization: Basic " + encoded_credentials + "\r\n"
                             "\r\n";
-      boost::asio::write(socket, boost::asio::buffer(request));
+      boost::asio::write(*socket_, boost::asio::buffer(request));
+      RCLCPP_INFO(this->get_logger(), "NTRIP sunucusuna bağlantı isteği gönderildi.");
+
+      // Sabit NMEA GGA cümlesi
+      nmea_gga_ = "$GPGGA,201708.012,4105.265,N,02839.339,E,1,12,1.0,0.0,M,0.0,M,,*69\r\n";
+      boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
+      RCLCPP_INFO(this->get_logger(), "NMEA GGA cümlesi gönderildi: %s", nmea_gga_.c_str());
 
       char response[1024];
-      size_t len = socket.read_some(boost::asio::buffer(response));
+      size_t len = socket_->read_some(boost::asio::buffer(response));
       std::cout.write(response, len);
-
-      while (true) {
-        char buf[512];
-        size_t len = socket.read_some(boost::asio::buffer(buf));
-        // std_msgs::msg::String msg;
-        // msg.data = std::string(buf, len);
-        std_msgs::msg::ByteMultiArray msg;
-        msg.data.insert(msg.data.end(), buf, buf + len);
-        publisher_->publish(msg);
-      }
+      RCLCPP_INFO(this->get_logger(), "NTRIP sunucusundan cevap alındı.");
     } catch (std::exception& e) {
-      RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "Bağlantı hatası: %s", e.what());
+      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(2), std::bind(&NtripClient::connect_to_ntrip, this));
     }
   }
 
-  std::string host_;
-  std::string port_;
+  void timer_callback() {
+    if (!socket_ || !socket_->is_open()) {
+      connect_to_ntrip();
+      return;
+    }
+
+    try {
+      // RTCM verilerini oku
+      char buf[512];
+      size_t len = socket_->read_some(boost::asio::buffer(buf));
+      std_msgs::msg::ByteMultiArray msg;
+      msg.data.insert(msg.data.end(), buf, buf + len);
+      publisher_->publish(msg);
+
+      // RTCM mesajlarını terminale yazdırma
+      RCLCPP_INFO(this->get_logger(), "RTCM yakalandı. Mesaj sayısı: %d", ++rtcm_count_);
+
+      // Konum bilgilerini periyodik olarak göndermek
+      boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
+    } catch (std::exception& e) {
+      RCLCPP_ERROR(this->get_logger(), "Veri okuma hatası: %s", e.what());
+      socket_->close();
+    }
+  }
+
   std::string username_;
   std::string password_;
+  int rtcm_count_;
+  std::unique_ptr<tcp::socket> socket_;
+  std::string nmea_gga_;
   rclcpp::Publisher<std_msgs::msg::ByteMultiArray>::SharedPtr publisher_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr reconnect_timer_;
 };
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  std::string host, port, username, password;
-
-  std::cout << "Enter IP address: ";
-  std::getline(std::cin, host);
-
-  std::cout << "Enter port: ";
-  std::getline(std::cin, port);
+  std::string username, password;
 
   std::cout << "Enter username: ";
   std::getline(std::cin, username);
@@ -100,7 +128,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Enter password: ";
   std::getline(std::cin, password);
 
-  auto node = std::make_shared<NtripClient>(host, port, username, password);
+  auto node = std::make_shared<NtripClient>(username, password);
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
