@@ -46,7 +46,7 @@ private:
     try {
       const std::string host = "212.156.70.42"; // IP adresi buraya
       const std::string port = "2101"; // Port buraya
-      const std::string mountpoint = "VRSRTCM31"; // Mount point buraya
+      const std::string mountpoint = "VRSRTCM34"; // Mount point buraya
 
       boost::asio::io_context io_context;
       tcp::resolver resolver(io_context);
@@ -68,18 +68,19 @@ private:
       boost::asio::write(*socket_, boost::asio::buffer(request));
       RCLCPP_INFO(this->get_logger(), "NTRIP sunucusuna bağlantı isteği gönderildi.");
 
-      // Sabit NMEA GGA cümlesi
-      nmea_gga_ = "$GPGGA,201708.012,4105.265,N,02839.339,E,1,12,1.0,0.0,M,0.0,M,,*69\r\n";
-      boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
-      RCLCPP_INFO(this->get_logger(), "NMEA GGA cümlesi gönderildi: %s", nmea_gga_.c_str());
-
       char response[1024];
       size_t len = socket_->read_some(boost::asio::buffer(response));
       std::cout.write(response, len);
-      RCLCPP_INFO(this->get_logger(), "NTRIP sunucusundan cevap alındı.");
+      RCLCPP_INFO(this->get_logger(), "NTRIP sunucusundan cevap alındı: %s", std::string(response, len).c_str());
+
+      // Sabit NMEA GGA cümlesi
+      nmea_gga_ = "$GPGGA,143812,4105.314,N,02839.306,E,2,4,1.5,0,M,0,M,,*4F\r\n";
+      boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
+      RCLCPP_INFO(this->get_logger(), "NMEA GGA cümlesi gönderildi: %s", nmea_gga_.c_str());
+
     } catch (std::exception& e) {
       RCLCPP_ERROR(this->get_logger(), "Bağlantı hatası: %s", e.what());
-      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(2), std::bind(&NtripClient::connect_to_ntrip, this));
+      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&NtripClient::connect_to_ntrip, this));
     }
   }
 
@@ -91,7 +92,7 @@ private:
 
     try {
       // RTCM verilerini oku
-      char buf[512];
+      char buf[2048];
       size_t len = socket_->read_some(boost::asio::buffer(buf));
       if (len > 0) {
         std_msgs::msg::ByteMultiArray msg;
@@ -104,13 +105,10 @@ private:
         RCLCPP_WARN(this->get_logger(), "Boş veri alındı, yeniden bağlanılıyor...");
         socket_->close();
       }
-
-      // Konum bilgilerini periyodik olarak göndermek
-      boost::asio::write(*socket_, boost::asio::buffer(nmea_gga_));
     } catch (std::exception& e) {
       RCLCPP_ERROR(this->get_logger(), "Veri okuma hatası: %s", e.what());
       socket_->close();
-      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(2), std::bind(&NtripClient::connect_to_ntrip, this));
+      reconnect_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&NtripClient::connect_to_ntrip, this));
     }
   }
 

@@ -134,47 +134,6 @@ private:
 };
 
 
-
-class PointStampedSubscriber : public rclcpp::Node
-{
-public:
-    PointStampedSubscriber() : Node("receive_point")
-    {
-        // Subscribe to the PointStamped topic
-        point_subscriber_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
-            "/clicked_point", 10,
-            std::bind(&PointStampedSubscriber::pointCallback, this, std::placeholders::_1));
-
-        cout << "clicked_point alindi." << endl;
-
-        mEnlem = 0;
-        mBoylam = 0;
-    }
-
-private:
-    void pointCallback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
-    {
-        // Extract coordinates from the received PointStamped message
-        double x = msg->point.x;
-        double y = msg->point.y;
-        double z = msg->point.z;
-
-        Wgs84FromLocalXy(x, y, 51.424, 5.4943, mEnlem, mBoylam);
-        cout << "Muhammed : (" << mEnlem << ", " << mBoylam << ")" << endl;
-
-        // Use the coordinates as needed
-        // For example, you can print them to the console
-        RCLCPP_INFO(this->get_logger(), "Received point coordinates: (%f, %f, %f)", x, y, z);
-    }
-
-    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr point_subscriber_;
-
-    double mEnlem;
-    double mBoylam;
-};
-
-
-
 class ApplyNoise 
 {
 public:
@@ -198,11 +157,9 @@ int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto positionPublisherNode = std::make_shared<PositionPublisher>();
-    auto pointSubscriberNode = std::make_shared<PointStampedSubscriber>();
 
     rclcpp::executors::MultiThreadedExecutor executor;
     executor.add_node(positionPublisherNode);
-    executor.add_node(pointSubscriberNode);
 
     // Spin the executor to run all nodes
     executor.spin();
