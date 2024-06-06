@@ -64,7 +64,7 @@ def create_gprmc(data):
 
 def create_gpgsv(data):
     total_satellites = len(data.prn_numbers)
-    num_messages = (total_satellites + 3) // 4
+    num_messages = (total_satellites + 3) // 4  # Calculate the number of messages needed
     message_number = 1
     satellite_info = [f"{prn:02d},00,00,00" for prn in data.prn_numbers]
     
@@ -79,7 +79,7 @@ def create_gpgsv(data):
         checksum = calculate_checksum(nmea_message)
         gsv_messages.append(f"{nmea_message}*{checksum}")
         message_number += 1
-    
+
     return gsv_messages
 
 def create_gpgsa(data):
@@ -97,6 +97,20 @@ def create_gpgsa(data):
 def create_gpvtg(data):
     nmea_message = (
         f"$GPVTG,0.0,T,,M,0.0,N,0.0,K,A"
+    )
+
+    checksum = calculate_checksum(nmea_message)
+    return f"{nmea_message}*{checksum}"
+
+def create_zda():
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    time_str = current_time.strftime("%H%M%S")
+    day = current_time.day
+    month = current_time.month
+    year = current_time.year
+
+    nmea_message = (
+        f"$GPZDA,{time_str},{day:02d},{month:02d},{year},00,00"
     )
 
     checksum = calculate_checksum(nmea_message)
@@ -130,6 +144,7 @@ class NavSatFixSubscriber(Node):
         gpgsv_messages = create_gpgsv(data)
         gpgsa_message = create_gpgsa(data)
         gpvtg_message = create_gpvtg(data)
+        zda_message = create_zda()
         
         self.get_logger().info(f'GGA Message: {gga_message}')
         self.get_logger().info(f'GPRMC Message: {gprmc_message}')
@@ -137,6 +152,7 @@ class NavSatFixSubscriber(Node):
             self.get_logger().info(f'GPGSV Message: {gsv_message}')
         self.get_logger().info(f'GPGSA Message: {gpgsa_message}')
         self.get_logger().info(f'GPVTG Message: {gpvtg_message}')
+        self.get_logger().info(f'ZDA Message: {zda_message}')
 
 def main(args=None):
     prn_count = 12  # Set the desired PRN count here, or fetch it from arguments

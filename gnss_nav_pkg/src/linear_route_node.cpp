@@ -109,9 +109,9 @@ private:
         marker_msg.pose.orientation.y = 0.0;
         marker_msg.pose.orientation.z = 0.0;
         marker_msg.pose.orientation.w = 1.0;
-        marker_msg.scale.x = 30.0;
-        marker_msg.scale.y = 30.0;
-        marker_msg.scale.z = 30.0;
+        marker_msg.scale.x = 40.0;
+        marker_msg.scale.y = 40.0;
+        marker_msg.scale.z = 40.0;
         marker_msg.color.a = 1.0; // Don't forget to set the alpha!
         marker_msg.color.r = 0.0;
         marker_msg.color.g = 0.5;
