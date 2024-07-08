@@ -15,10 +15,32 @@ using namespace sensor_msgs::msg;
 using namespace swri_transform_util;
 
 
+class ApplyNoise 
+{
+public:
+    ApplyNoise(double stddev) : stddev(stddev), generator(std::random_device{}()), distribution(0.0, stddev) {}
+
+    void update(NavSatFix& fix) {
+        double noise_lat = distribution(generator)/5000.0;
+        double noise_lon = distribution(generator)/500.0;
+        fix.latitude += noise_lat;
+        fix.longitude += noise_lon;
+
+        cout << "Noise at (" << noise_lat << ", " << noise_lon << ")" << endl;
+    }
+
+private:
+    double stddev;
+    default_random_engine generator;
+    normal_distribution<double> distribution;
+};
+
+
 class LinearTranslate {
 public:
     LinearTranslate(NavSatFix waypoint1, NavSatFix waypoint2) : waypoint1(waypoint1), waypoint2(waypoint2) {
         total_distance = calculate_distance();
+        noiseApplier = std::make_shared<ApplyNoise>(0.001); 
         speed = 2.0;
         alpha = 0.0;
     }
@@ -41,6 +63,7 @@ public:
 
         fix.latitude = waypoint1.latitude + alpha * (waypoint2.latitude - waypoint1.latitude);
         fix.longitude = waypoint1.longitude + alpha * (waypoint2.longitude - waypoint1.longitude);
+        noiseApplier->update(fix);
     }
 
 private:
@@ -49,7 +72,9 @@ private:
     double total_distance;
     double speed;
     double alpha;
+    shared_ptr<ApplyNoise> noiseApplier; 
 };
+
 
 class PositionPublisher : public rclcpp::Node
 {
@@ -57,25 +82,23 @@ public:
     PositionPublisher() : Node("publish_demo_data")
     {
         mPublisher = this->create_publisher<NavSatFix>("fix", 1);
-        mTimer     = this->create_wall_timer(std::chrono::milliseconds(100),
+        mTimer     = this->create_wall_timer(std::chrono::milliseconds(200), // Decrease the frequency to 200 ms
                                              std::bind(&PositionPublisher::timerCallback, this));
 
         mMarkerPublisher = this->create_publisher<visualization_msgs::msg::Marker>("marker_topic", 1);
 
         RCLCPP_INFO(this->get_logger(), "Gnss publisher has been started.");
 
-        origin.latitude = 51.424;//stod(argv[1]);
-        origin.longitude = 5.4943;//stod(argv[2]);
+        origin.latitude = 51.424;
+        origin.longitude = 5.4943;
      
-        waypoint1.latitude = 51.424069;//stod(argv[3]);
-        waypoint1.longitude = 5.492310;//stod(argv[4]);
+        waypoint1.latitude = 51.424069;
+        waypoint1.longitude = 5.492310;
         
-        waypoint2.latitude = 51.388781; //stod(argv[5]);
-        waypoint2.longitude = 5.510854;//stod(argv[6]);
+        waypoint2.latitude = 51.388781; 
+        waypoint2.longitude = 5.510854;
 
-        
         mUpdaters.push_back(std::make_shared<LinearTranslate>(waypoint1, waypoint2));
-
     }
 
 private:
@@ -90,9 +113,9 @@ private:
         for (auto u : mUpdaters) {
             u->update(*fix);
         }
-        cout << "Publishings NavSatFix at (" << fix->latitude << ", " << fix->longitude << ")" << endl;
-        mPublisher->publish(*fix);
 
+        cout << "Publishing NavSatFix at (" << fix->latitude << ", " << fix->longitude << ")" << endl;
+        mPublisher->publish(*fix);
 
         visualization_msgs::msg::Marker marker_msg;
 
@@ -130,28 +153,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr mPublisher;
     rclcpp::TimerBase::SharedPtr mTimer;
     rclcpp::Node::SharedPtr node_ptr;
-
 };
-
-
-class ApplyNoise 
-{
-public:
-    ApplyNoise(double stddev) : stddev(stddev) {}
-
-    void update(NavSatFix& fix) {
-        default_random_engine generator;
-        normal_distribution<double> distribution(0.0, stddev);
-        double noise_lat = distribution(generator);
-        double noise_lon = distribution(generator);
-        fix.latitude += noise_lat;
-        fix.longitude += noise_lon;
-    }
-
-private:
-    double stddev;
-};
-
 
 int main(int argc, char* argv[])
 {
