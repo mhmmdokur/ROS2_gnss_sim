@@ -14,7 +14,7 @@ class RinexPublisher(Node):
     def __init__(self):
         super().__init__('rinex_publisher')
 
-        self.sat_data = read_rinex('./wdc51200.24n')
+        self.sat_data = read_rinex('./dgar2350.24n')
         self.sat_pos = calculate_positions(self.sat_data)
 
         self.position_publisher = self.create_publisher(NavSatFix, 'satellite_position', 30)

@@ -21,8 +21,8 @@ public:
     ApplyNoise(double stddev) : stddev(stddev), generator(std::random_device{}()), distribution(0.0, stddev) {}
 
     void update(NavSatFix& fix) {
-        double noise_lat = distribution(generator)/5000.0;
-        double noise_lon = distribution(generator)/500.0;
+        double noise_lat = distribution(generator)/400.0;
+        double noise_lon = distribution(generator)/400.0;
         fix.latitude += noise_lat;
         fix.longitude += noise_lon;
 
@@ -40,8 +40,8 @@ class LinearTranslate {
 public:
     LinearTranslate(NavSatFix waypoint1, NavSatFix waypoint2) : waypoint1(waypoint1), waypoint2(waypoint2) {
         total_distance = calculate_distance();
-        noiseApplier = std::make_shared<ApplyNoise>(0.001); 
-        speed = 2.0;
+        noiseApplier = std::make_shared<ApplyNoise>(0.005); 
+        speed = 0.5;
         alpha = 0.0;
     }
 
@@ -89,14 +89,14 @@ public:
 
         RCLCPP_INFO(this->get_logger(), "Gnss publisher has been started.");
 
-        origin.latitude = 51.424;
-        origin.longitude = 5.4943;
+        origin.latitude = 41.1519913;
+        origin.longitude =  28.731828;
      
-        waypoint1.latitude = 51.424069;
-        waypoint1.longitude = 5.492310;
+        waypoint1.latitude = 41.0983037;
+        waypoint1.longitude = 28.8763951;
         
-        waypoint2.latitude = 51.388781; 
-        waypoint2.longitude = 5.510854;
+        waypoint2.latitude = 41.1772253; 
+        waypoint2.longitude = 28.635669;
 
         mUpdaters.push_back(std::make_shared<LinearTranslate>(waypoint1, waypoint2));
     }
