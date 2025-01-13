@@ -1,0 +1,39 @@
+1) Yeni bir workspace olustur : nav_ws
+
+2) cd nav_ws/src
+
+3) git clone -b ros2 https://github.com/nobleo/rviz_satellite.git
+
+4) rosdep install -i --from-path src --rosdistro humble -y --skip-keys="mapviz"
+
+5) colcon build
+
+6) Yeni bir terminal daha aç
+
+7) gedit .bashrc
+
+8) source ~/nav_ws/install/setup.bash  komutunu ekle
+
+9) source .bashrc
+
+10) ros2 launch rviz_satellite demo.launch.xml
+
+11) Rviz ->> Add ->> ArialMap
+
+12) Object URl
+	OpenStreetMap: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+	TomTom: https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?tileSize=512&key=[TOKEN]
+    	Mapbox: https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=[TOKEN]
+    	
+13) Topic ->> /fix
+
+
+TERMINAL LAUNCH 
+
+1) muhammed@muhammed-KLVD-WXX9:~$ ros2 launch gnss_nav_pkg gnss_nav_app.launch.py
+
+2) muhammed@muhammed-KLVD-WXX9:~$ ros2 run nmea_pkg nmea_node
+
+3) muhammed@muhammed-KLVD-WXX9:~$ ros2 run ntrip_pkg ntrip_node
+
+4) muhammed@muhammed-KLVD-WXX9:~/ros2_ws/src/rinex_pkg/rinex_pkg$ ros2 run rinex_pkg rinex_node

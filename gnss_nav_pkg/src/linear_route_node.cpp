@@ -21,8 +21,8 @@ public:
     ApplyNoise(double stddev) : stddev(stddev), generator(std::random_device{}()), distribution(0.0, stddev) {}
 
     void update(NavSatFix& fix) {
-        double noise_lat = distribution(generator)/400.0;
-        double noise_lon = distribution(generator)/400.0;
+        double noise_lat = distribution(generator)/4000.0;
+        double noise_lon = distribution(generator)/4000.0;
         fix.latitude += noise_lat;
         fix.longitude += noise_lon;
 
@@ -41,7 +41,7 @@ public:
     LinearTranslate(NavSatFix waypoint1, NavSatFix waypoint2) : waypoint1(waypoint1), waypoint2(waypoint2) {
         total_distance = calculate_distance();
         noiseApplier = std::make_shared<ApplyNoise>(0.005); 
-        speed = 0.5;
+        speed = 0.8;
         alpha = 0.0;
     }
 
@@ -123,18 +123,18 @@ private:
         marker_msg.header.stamp = t;
         marker_msg.ns = "markers";
         marker_msg.id = 0;
-        marker_msg.type = visualization_msgs::msg::Marker::SPHERE;
+        marker_msg.type = visualization_msgs::msg::Marker::ARROW;
         marker_msg.action = visualization_msgs::msg::Marker::ADD;
         marker_msg.pose.position.x = 0.0;
         marker_msg.pose.position.y = 0.0;
-        marker_msg.pose.position.z = 1.0;
+        marker_msg.pose.position.z = 5.0;
         marker_msg.pose.orientation.x = 0.0;
-        marker_msg.pose.orientation.y = 0.0;
+        marker_msg.pose.orientation.y = -60.0;
         marker_msg.pose.orientation.z = 0.0;
         marker_msg.pose.orientation.w = 1.0;
-        marker_msg.scale.x = 40.0;
-        marker_msg.scale.y = 40.0;
-        marker_msg.scale.z = 40.0;
+        marker_msg.scale.x = 200.0;
+        marker_msg.scale.y = 70.0;
+        marker_msg.scale.z = 1;
         marker_msg.color.a = 1.0; // Don't forget to set the alpha!
         marker_msg.color.r = 0.0;
         marker_msg.color.g = 0.5;

@@ -148,8 +148,14 @@ class NavSatFixSubscriber(Node):
         
         self.get_logger().info(f'GGA Message: {gga_message}')
         self.get_logger().info(f'GPRMC Message: {gprmc_message}')
-        for gsv_message in gpgsv_messages:
-            self.get_logger().info(f'GPGSV Message: {gsv_message}')
+        #for gsv_message in gpgsv_messages:
+         #   self.get_logger().info(f'GPGSV Message: {gsv_message}')
+
+        self.get_logger().info(f'GPGSV Message: $GPGSV,3,1,06,28,45,120,30,05,55,140,32,29,65,160,34,24,75,180,36*76')
+        self.get_logger().info(f'GPGSV Message: $GPGSV,3,2,06,06,85,200,38,25,95,220,40*7B')
+        self.get_logger().info(f'GLGSV Message: $GLGSV,3,1,06,10,45,120,30,04,55,140,32,11,65,160,34,20,75,180,36*7B')
+        self.get_logger().info(f'GLGSV Message: $GLGSV,3,2,06,21,85,200,38,05,95,220,40*78')
+        
         self.get_logger().info(f'GPGSA Message: {gpgsa_message}')
         self.get_logger().info(f'GPVTG Message: {gpvtg_message}')
         self.get_logger().info(f'ZDA Message: {zda_message}')
